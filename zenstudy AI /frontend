@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZenStudy | Grow Your Mind</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --card-bg: #1a1a1a;
+            --primary: #00ff88;
+            --secondary: #00d4ff;
+            --text: #ffffff;
+            --accent: #ff0055;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text);
+            overflow-x: hidden;
+        }
+
+        /* Login/Signup Overlay */
+        #auth-screen {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-color);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .auth-card {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 15px;
+            width: 350px;
+            border: 1px solid var(--primary);
+            text-align: center;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: #2a2a2a;
+            border: none;
+            color: white;
+            border-radius: 5px;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .btn:hover { opacity: 0.8; transform: scale(1.05); }
+
+        /* Main Layout */
+        #main-app { display: none; }
+
+        nav {
+            width: 250px;
+            height: 100vh;
+            background: var(--card-bg);
+            position: fixed;
+            padding: 20px;
+            border-right: 1px solid #333;
+        }
+
+        .nav-item {
+            padding: 15px;
+            cursor: pointer;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            transition: 0.3s;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--primary);
+        }
+
+        main {
+            margin-left: 250px;
+            padding: 30px;
+            min-height: 100vh;
+        }
+
+        .page { display: none; animation: fadeIn 0.5s; }
+        .page.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Dashboard & Tree */
+        .tree-container {
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            background: linear-gradient(transparent, #111);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        #tree-visual {
+            font-size: 50px;
+            transition: all 1s ease;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 15px;
+            border-bottom: 3px solid var(--primary);
+        }
+
+        /* AI Planner */
+        .task-list { margin-top: 20px; }
+        .task-item {
+            background: #222;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .completed { text-decoration: line-through; opacity: 0.5; }
+
+        /* Chatbot */
+        #chat-box {
+            height: 300px;
+            background: #111;
+            overflow-y: auto;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        /* Study Timer */
+        #timer-display {
+            font-size: 80px;
+            font-weight: bold;
+            color: var(--primary);
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        /* Games Section */
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .game-card {
+            background: var(--card-bg);
+            padding: 20px;
+            text-align: center;
+            border-radius: 15px;
+            position: relative;
+        }
+
+        .locked { filter: grayscale(1) blur(2px); pointer-events: none; }
+        .lock-overlay {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+        }
+
+        /* Bubble Game UI */
+        #bubble-game-canvas {
+            background: #000;
+            width: 100%;
+            height: 400px;
+            border-radius: 15px;
+            display: none;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Auth Screen -->
+    <div id="auth-screen">
+        <div class="auth-card">
+            <h2 style="color: var(--primary)">ZenStudy</h2>
+            <p>16-22 Student Portal</p>
+            <input type="text" id="username" placeholder="Username">
+            <input type="password" id="password" placeholder="Password">
+            <button class="btn" onclick="login()">Enter Space</button>
+            <p style="margin-top: 15px; font-size: 12px; cursor: pointer;">New here? Create account</p>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="main-app">
+        <nav>
+            <h2 style="color: var(--primary); margin-bottom: 30px;">ZenStudy</h2>
+            <div class="nav-item active" onclick="showPage('dashboard')"><i class="fas fa-seedling"></i> Dashboard</div>
+            <div class="nav-item" onclick="showPage('planner')"><i class="fas fa-calendar-check"></i> AI Planner</div>
+            <div class="nav-item" onclick="showPage('chatbot')"><i class="fas fa-robot"></i> Study Buddy AI</div>
+            <div class="nav-item" onclick="showPage('study')"><i class="fas fa-book-reader"></i> Study Room</div>
+            <div class="nav-item" onclick="showPage('distraction')"><i class="fas fa-shield-halved"></i> Anti-Distract</div>
+            <div class="nav-item" onclick="showPage('games')"><i class="fas fa-gamepad"></i> Game Zone</div>
+            <div class="nav-item" onclick="showPage('profile')"><i class="fas fa-user-edit"></i> Profile</div>
+            <div style="position: absolute; bottom: 20px; color: var(--primary);">
+                <span id="coin-display"><i class="fas fa-coins"></i> 0</span> Coins
+            </div>
+        </nav>
+
+        <main>
+            <!-- Dashboard -->
+            <section id="dashboard" class="page active">
+                <h1>Welcome Back, <span id="user-name-tag">Student</span>!</h1>
+                <div class="tree-container">
+                    <div id="tree-visual">🌱</div>
+                    <p id="tree-status">Your tree is a seedling. Study to grow it!</p>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Study Time</h3>
+                        <p id="total-study-time">0 mins</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Tree Level</h3>
+                        <p id="tree-level">1</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Tasks Done</h3>
+                        <p id="tasks-count">0</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI Planner -->
+            <section id="planner" class="page">
+                <h1>AI Schedule Planner</h1>
+                <div class="auth-card" style="width: 100%; text-align: left;">
+                    <input type="text" id="ai-input" placeholder="What subjects do you need to study today?">
+                    <button class="btn" onclick="generateSchedule()">Generate AI Plan</button>
+                </div>
+                <div class="task-list" id="task-list">
+                    <!-- Tasks injected here -->
+                </div>
+            </section>
+
+            <!-- Chatbot -->
+            <section id="chatbot" class="page">
+                <h1>AI Study Buddy</h1>
+                <div id="chat-box">
+                    <p><strong>AI:</strong> Hello! I'm your AI tutor. Ask me anything about your studies!</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="chat-input" placeholder="Explain photosynthesis...">
+                    <button class="btn" onclick="sendMessage()">Send</button>
+                </div>
+            </section>
+
+            <!-- Study Room -->
+            <section id="study" class="page">
+                <h1>Focus Room</h1>
+                <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+                    <button class="btn" onclick="startStudy('single')">Single Study</button>
+                    <button class="btn" style="background: var(--secondary)" onclick="startStudy('group')">Group Study</button>
+                </div>
+                <div id="timer-display">25:00</div>
+                <center>
+                    <button class="btn" id="timer-btn" onclick="toggleTimer()">Start Focus Session</button>
+                </center>
+                <p style="text-align: center; margin-top: 10px;">Earn 10 coins every 2 minutes!</p>
+            </section>
+
+            <!-- Distraction Solver -->
+            <section id="distraction" class="page">
+                <h1>Distraction Shield</h1>
+                <div class="auth-card" style="width: 100%;">
+                    <h3>What's distracting you?</h3>
+                    <input type="text" id="distract-input" placeholder="e.g. Instagram, Loud noises, Tiredness">
+                    <button class="btn" onclick="solveDistraction()">Get Solution</button>
+                    <div id="distract-solution" style="margin-top: 20px; color: var(--primary);"></div>
+                </div>
+            </section>
+
+            <!-- Games Zone -->
+            <section id="games" class="page">
+                <h1>Game Zone</h1>
+                <p id="game-lock-msg" style="color: var(--accent); margin-bottom: 20px;">🔒 Locked: Study for 2 minutes to unlock games!</p>
+                <div class="game-grid">
+                    <div class="game-card" id="bubble-card">
+                        <h3>Bubble Pop</h3>
+                        <p>Earn coins by popping!</p>
+                        <button class="btn" onclick="startBubbleGame()">Play</button>
+                    </div>
+                    <div class="game-card locked">
+                        <div class="lock-overlay"><i class="fas fa-lock"></i></div>
+                        <h3>Puzzle Master</h3>
+                        <button class="btn">Play</button>
+                    </div>
+                    <div class="game-card locked">
+                        <div class="lock-overlay"><i class="fas fa-lock"></i></div>
+                        <h3>Ludo with Friends</h3>
+                        <button class="btn">Play</button>
+                    </div>
+                </div>
+                <canvas id="bubble-game-canvas"></canvas>
+            </section>
+
+            <!-- Profile Section -->
+            <section id="profile" class="page">
+                <h1>Student Profile</h1>
+                <div class="auth-card" style="width: 100%;">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" id="profile-pic" style="width: 100px; border-radius: 50%;">
+                    <input type="text" id="edit-name" placeholder="Full Name">
+                    <input type="email" id="edit-email" placeholder="Email">
+                    <button class="btn" onclick="saveProfile()">Update Profile</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // State Management
+        let state = {
+            user: "Student",
+            coins: 0,
+            studyMinutes: 0,
+            treeLevel: 1,
+            tasks: [],
+            isTimerRunning: false,
+            timerSeconds: 1500, // 25 mins
+            gamesUnlocked: false
+        };
+
+        // Load data from LocalStorage
+        function init() {
+            const saved = localStorage.getItem('zenstudy_data');
+            if (saved) {
+                state = JSON.parse(saved);
+                updateUI();
+            }
+        }
+
+        function save() {
+            localStorage.setItem('zenstudy_data', JSON.stringify(state));
+        }
+
+        // Auth Logic
+        function login() {
+            const user = document.getElementById('username').value;
+            if(user) {
+                state.user = user;
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('main-app').style.display = 'block';
+                document.getElementById('user-name-tag').innerText = user;
+                updateUI();
+            } else {
+                alert("Please enter a username");
+            }
+        }
+
+        // Navigation
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        // UI Updates
+        function updateUI() {
+            document.getElementById('coin-display').innerHTML = `<i class="fas fa-coins"></i> ${state.coins}`;
+            document.getElementById('total-study-time').innerText = `${state.studyMinutes} mins`;
+            document.getElementById('tree-level').innerText = state.treeLevel;
+            document.getElementById('tasks-count').innerText = state.tasks.filter(t => t.done).length;
+            
+            // Tree Evolution
+            const tree = document.getElementById('tree-visual');
+            if (state.studyMinutes > 60) { tree.innerText = "🌳"; state.treeLevel = 3; }
+            else if (state.studyMinutes > 10) { tree.innerText = "🌿"; state.treeLevel = 2; }
+            else { tree.innerText = "🌱"; state.treeLevel = 1; }
+
+            // Game Lock Logic
+            if (state.studyMinutes >= 2) {
+                state.gamesUnlocked = true;
+                document.getElementById('game-lock-msg').innerHTML = "✅ Games Unlocked!";
+                document.getElementById('game-lock-msg').style.color = "var(--primary)";
+                document.getElementById('bubble-card').classList.remove('locked');
+            } else {
+                document.getElementById('bubble-card').classList.add('locked');
+            }
+            save();
+        }
+
+        // Timer Logic
+        let timerInterval;
+        function toggleTimer() {
+            if (state.isTimerRunning) {
+                clearInterval(timerInterval);
+                state.isTimerRunning = false;
+                document.getElementById('timer-btn').innerText = "Resume Session";
+            } else {
+                state.isTimerRunning = true;
+                document.getElementById('timer-btn').innerText = "Pause Session";
+                timerInterval = setInterval(() => {
+                    state.timerSeconds--;
+                    if (state.timerSeconds % 120 === 0) { // Every 2 minutes
+                        state.coins += 10;
+                        state.studyMinutes += 2;
+                        updateUI();
+                    }
+                    displayTime();
+                    if (state.timerSeconds <= 0) {
+                        clearInterval(timerInterval);
+                        alert("Session Complete! Well done.");
+                    }
+                }, 1000);
+            }
+        }
+
+        function displayTime() {
+            const mins = Math.floor(state.timerSeconds / 60);
+            const secs = state.timerSeconds % 60;
+            document.getElementById('timer-display').innerText = 
+                `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // AI Planner (Mock)
+        function generateSchedule() {
+            const input = document.getElementById('ai-input').value;
+            if (!input) return;
+            
+            const aiTasks = [
+                { id: Date.now(), text: `Read ${input} summary`, done: false },
+                { id: Date.now()+1, text: `Practice 5 problems on ${input}`, done: false },
+                { id: Date.now()+2, text: `Flashcards for ${input}`, done: false }
+            ];
+            
+            state.tasks = [...state.tasks, ...aiTasks];
+            renderTasks();
+            document.getElementById('ai-input').value = "";
+        }
+
+        function renderTasks() {
+            const list = document.getElementById('task-list');
+            list.innerHTML = state.tasks.map(task => `
+                <div class="task-item">
+                    <span class="${task.done ? 'completed' : ''}">${task.text}</span>
+                    <input type="checkbox" ${task.done ? 'checked' : ''} onchange="toggleTask(${task.id})">
+                </div>
+            `).join('');
+            updateUI();
+        }
+
+        function toggleTask(id) {
+            state.tasks = state.tasks.map(t => t.id === id ? {...t, done: !t.done} : t);
+            renderTasks();
+        }
+
+        // AI Chatbot (Mock)
+        function sendMessage() {
+            const input = document.getElementById('chat-input').value;
+            const box = document.getElementById('chat-box');
+            if(!input) return;
+
+            box.innerHTML += `<p><strong>You:</strong> ${input}</p>`;
+            
+            setTimeout(() => {
+                const responses = [
+                    "That's a great question! Focus on the core concepts first.",
+                    "According to your schedule, you should be finishing this soon!",
+                    "I recommend taking a 5-minute break after this topic.",
+                    "Studies show that explaining this to a friend helps retention."
+                ];
+                const reply = responses[Math.floor(Math.random()*responses.length)];
+                box.innerHTML += `<p style="color:var(--primary)"><strong>AI:</strong> ${reply}</p>`;
+                box.scrollTop = box.scrollHeight;
+            }, 800);
+            
+            document.getElementById('chat-input').value = "";
+        }
+
+        // Distraction Solver
+        function solveDistraction() {
+            const input = document.getElementById('distract-input').value.toLowerCase();
+            const solDiv = document.getElementById('distract-solution');
+            
+            let solution = "Try the Pomodoro technique: 25 mins work, 5 mins break.";
+            if (input.includes("phone") || input.includes("instagram")) {
+                solution = "Put your phone in another room and set a physical timer.";
+            } else if (input.includes("noise")) {
+                solution = "Try 'Brown Noise' or 'Lo-fi Study Beats' on YouTube.";
+            } else if (input.includes("tired")) {
+                solution = "Stand up, stretch, and drink 2 glasses of water now.";
+            }
+            
+            solDiv.innerText = "AI Suggestion: " + solution;
+        }
+
+        // Simple Bubble Game
+        function startBubbleGame() {
+            if (!state.gamesUnlocked) return;
+            const canvas = document.getElementById('bubble-game-canvas');
+            canvas.style.display = 'block';
+            const ctx = canvas.getContext('2d');
+            let score = 0;
+            
+            function draw() {
+                ctx.clearRect(0,0, canvas.width, canvas.height);
+                ctx.fillStyle = "var(--primary)";
+                ctx.beginPath();
+                ctx.arc(Math.random()*canvas.width, Math.random()*canvas.height, 20, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = "white";
+                ctx.fillText("Pop the bubbles! Score: " + score, 10, 20);
+            }
+
+            canvas.onclick = () => { 
+                score++; 
+                if(score % 5 === 0) { state.coins += 1; updateUI(); }
+                draw(); 
+            };
+            draw();
+        }
+
+        function saveProfile() {
+            state.user = document.getElementById('edit-name').value || state.user;
+            document.getElementById('user-name-tag').innerText = state.user;
+            alert("Profile Updated!");
+            save();
+        }
+
+        // Initialize on load
+        window.onload = init;
+
+    </script>
+</body>
+</html>
